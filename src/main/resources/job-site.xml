@@ -1,0 +1,10 @@
+<configuration>
+	<property>
+		<name>zookeeper.quorum</name>
+		<value>10.11.152.97:2181,10.11.152.98:2181,10.11.152.99:2181</value>
+	</property>
+	<property>
+		<name>zookeeper.znode.parent</name>
+		<value>/jobkeeper/app_190</value>
+	</property>
+</configuration>

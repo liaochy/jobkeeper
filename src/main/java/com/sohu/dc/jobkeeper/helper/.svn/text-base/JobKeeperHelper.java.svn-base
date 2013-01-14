@@ -1,0 +1,92 @@
+package com.sohu.tw.jobkeeper.helper;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.sohu.tw.jobkeeper.conf.Configuration;
+import com.sohu.tw.jobkeeper.conf.Dependency;
+import com.sohu.tw.jobkeeper.conf.Node;
+
+public class JobKeeperHelper {
+	private final static Log logger = LogFactory.getLog(JobKeeperHelper.class);
+
+	/**
+	 * 带有指定依赖的按小时的节点和指定小时按天的节点
+	 * 
+	 * @return
+	 */
+	public static List<Node> getNodesWithDependencys(String nodeName,
+			String c_hour) {
+		List<Node> nodesWithDependencys = new ArrayList<Node>();
+		List<Node> nodes = Configuration.getInstance().getOtherNodes();
+		for (Node node : nodes) {
+			List<Dependency> dependencys = node.getDependency();
+			for (Dependency dependency : dependencys) {
+				if (nodeName.equals(dependency.getName())) {
+					if ("day".equals(node.getType())) {
+						if (!c_hour.equals(node.getHour())) {
+							logger.info("path=" + node.getPath() + " hour="
+									+ node.getHour());
+							break;
+						}
+					}
+					nodesWithDependencys.add(node);
+					break;
+				}
+			}
+		}
+		return nodesWithDependencys;
+	}
+
+	/**
+	 * 找到所有要watcher的节点
+	 * 
+	 * @return
+	 */
+	public static List<Node> getWatcherNodes(String c_hour) {
+		List<Node> nodesWithDependencys = new ArrayList<Node>();
+		Set<Node> sortedNames = new HashSet<Node>();
+		List<Node> nodes = Configuration.getInstance().getOtherNodes();
+		for (Node node : nodes) {
+			if ("day".equals(node.getType())) {
+				if (!c_hour.equals(node.getHour())) {
+					continue;
+				}
+			}
+			List<Dependency> dependencys = node.getDependency();
+			for (Dependency dependency : dependencys) {
+				Node tmpNode = new Node();
+				tmpNode.setName(dependency.getName());
+				tmpNode.setType(dependency.getType());
+				sortedNames.add(tmpNode);
+			}
+		}
+		nodesWithDependencys.addAll(sortedNames);
+		return nodesWithDependencys;
+	}
+
+	/**
+	 * 所有etl节点
+	 * 
+	 * @return
+	 */
+	public static List<Node> getEtlNodes(String hour) {
+		List<Node> nodesByDay = new ArrayList<Node>();
+		List<Node> nodes = Configuration.getInstance().getEtlNodes();
+		for (Node node : nodes) {
+			if ("day".equals(node.getType())) {
+				if (!hour.equals(node.getHour())) {
+					continue;
+				}
+			}
+			nodesByDay.add(node);
+		}
+		return nodesByDay;
+	}
+
+}

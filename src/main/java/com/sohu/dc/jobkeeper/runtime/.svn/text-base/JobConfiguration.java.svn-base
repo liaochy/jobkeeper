@@ -1,0 +1,110 @@
+package com.sohu.tw.jobkeeper.conf;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.sohu.tw.jobkeeper.helper.ZooKeeperHelper;
+
+public class Configuration {
+	private final static Logger logger = LoggerFactory
+			.getLogger(Configuration.class);
+	private static Configuration conf;
+	private List<Node> etlNodes = new ArrayList<Node>();
+	private String confPath = "";
+	private boolean master = true;
+	public boolean isMaster() {
+		return master;
+	}
+
+	public void setMaster(boolean master) {
+		this.master = master;
+	}
+
+	private static final String SCRIPTS_HOME = "${SCRIPTS_HOME}";
+
+	public void setConfPath(String confPath) {
+		this.confPath = confPath;
+	}
+
+	public List<Node> getEtlNodes() {
+		return etlNodes;
+	}
+
+	public List<Node> getOtherNodes() {
+		return otherNodes;
+	}
+
+	private List<Node> otherNodes = new ArrayList<Node>();
+
+	public static synchronized Configuration getInstance() {
+		if (conf == null) {
+			conf = new Configuration();
+		}
+		return conf;
+	}
+
+	public void init() {
+		logger.info("init start");
+		conf.etlNodes.clear();
+		conf.otherNodes.clear();
+		ZooKeeperHelper zooKeeper = new ZooKeeperHelper();
+		List<String> nodeNames = zooKeeper
+				.getNode(confPath + "/node", null);
+		String scripts_home = zooKeeper.getData(confPath + "/scripts_home",
+				null);
+		for (String nodeName : nodeNames) {
+			String nodeStr = zooKeeper.getData(confPath + "/node/"
+					+ nodeName, null);
+			Node node = parse(nodeStr, scripts_home);
+			if (node.getDependency().size() == 0) {
+				conf.etlNodes.add(node);
+			} else {
+				conf.otherNodes.add(node);
+			}
+		}
+	}
+
+	private static Node parse(String nodeStr, String scripts_home) {
+		Node node = new Node();
+		try {
+			JSONObject jsonObject = new JSONObject(nodeStr);
+			node.setName(jsonObject.getString("name"));
+			String path = jsonObject.getString("path");
+			if (path.startsWith(SCRIPTS_HOME)) {
+				path = path.replace(SCRIPTS_HOME, scripts_home);
+			}
+			node.setPath(path);
+			node.setType(jsonObject.getString("type"));
+			node.setOwner(jsonObject.getString("owner"));
+			if (!jsonObject.isNull("hour")) {
+				node.setHour(jsonObject.getString("hour"));
+			}
+			if (!jsonObject.isNull("argument")) {
+				node.setArgument(jsonObject.getString("argument"));
+			}
+			if (!jsonObject.isNull("dependency")) {
+				JSONArray array = jsonObject.getJSONArray("dependency");
+				List<Dependency> dependencys = new ArrayList<Dependency>();
+				for (int i = 0; i < array.length(); i++) {
+					JSONObject dependency = array.getJSONObject(i);
+					Dependency depend = new Dependency();
+					depend.setName(dependency.getString("name"));
+					depend.setType(dependency.getString("type"));
+					dependencys.add(depend);
+				}
+				node.setDependency(dependencys);
+			}
+
+		} catch (JSONException e) {
+			logger.debug("JSONException=");
+		}
+		return node;
+	}
+
+}
