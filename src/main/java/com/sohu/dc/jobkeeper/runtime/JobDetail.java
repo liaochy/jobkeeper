@@ -40,7 +40,6 @@ public class JobDetail {
 	 * 
 	 * @throws IOException
 	 */
-	//TODO 添加自定义执行功能，用于解决自定义分钟级别任务
 	public void start() throws IOException {
 		if (!start) {
 			new ShellThread("shellThread").start();
@@ -59,6 +58,20 @@ public class JobDetail {
 				CreateMode.PERSISTENT);
 		watchNode(p_hour, c_hour);
 		runEtlNode(p_hour, c_hour);
+	}
+	
+	/**
+	 * 任务每5分钟执行一次
+	 * 分钟级别的任务，直接处理日志进行分析，不会有依赖
+	 * 
+	 * @throws IOException
+	 */
+	public void startMin() throws IOException {
+		List<Node> nodes = context.getMinNodes();
+		for (Node node : nodes) {
+			CmdLineInterface cmdLine = new CmdLineExec(node, "");
+			cmdLine.exec();
+		}
 	}
 
 	/**
