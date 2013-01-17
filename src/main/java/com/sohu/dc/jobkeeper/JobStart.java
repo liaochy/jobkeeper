@@ -58,6 +58,24 @@ public class JobStart {
 		this.context.createContext();
 		this.job.start();
 	}
+	
+	/**
+	 * 任务每5分钟执行一次
+	 * 分钟级别的任务，直接处理日志进行分析，不会有依赖
+	 * 
+	 * @throws IOException
+	 */
+	public void jobStartMin() throws IOException {
+		if (!canRun()) {
+			logger.info("current jobkeeper is not master !");
+			return;
+		}
+		logger.info("min job start .");
+		String min = DateUtil.getDateTime("m", new Date());
+		this.context.createContextMin(min);
+		this.job.startMin();
+	}
+	
 
 	/**
 	 * 半小时判断kpi是否完成，否则告警

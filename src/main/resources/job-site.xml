@@ -5,6 +5,6 @@
 	</property>
 	<property>
 		<name>zookeeper.znode.parent</name>
-		<value>/jobkeeper/app_190</value>
+		<value>/jobkeeper/app_13_2</value>
 	</property>
 </configuration>

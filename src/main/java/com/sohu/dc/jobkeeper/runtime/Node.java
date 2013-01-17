@@ -41,6 +41,7 @@ public class Node {
 	private String path;
 	private String argument;
 	private String owner;
+	private String minute;
 
 	private List<Dependency> dependency = new ArrayList<Dependency>();
 
@@ -99,5 +100,14 @@ public class Node {
 	public void setOwner(String owner) {
 		this.owner = owner;
 	}
+
+	public String getMinute() {
+		return minute;
+	}
+
+	public void setMinute(String minute) {
+		this.minute = minute;
+	}
+
 
 }

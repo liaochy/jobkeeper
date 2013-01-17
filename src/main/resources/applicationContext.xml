@@ -22,6 +22,18 @@
 		<property name="jobDetail" ref="jobStartDetail" />
 		<property name="cronExpression" value="0 0 * * * ?" />
 	</bean>
+	
+	<bean id="jobStartByMinDetail"
+		class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="jobStart" />
+		<property name="targetMethod" value="jobStartMin" />
+	</bean>
+	<bean id="jobStartByMinTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+		<property name="jobDetail" ref="jobStartByMinDetail" />
+		<property name="cronExpression" value="0 0/5 * * * ?" />
+	</bean>
+	
+	
 	<bean id="jobStartByDayDetail"
 		class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
 		<property name="targetObject" ref="jobStart" />
@@ -31,12 +43,14 @@
 		<property name="jobDetail" ref="jobStartByDayDetail" />
 		<property name="cronExpression" value="0 40 * * * ?" />
 	</bean>
+	
 	<bean autowire="no"
 		class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
 		<property name="triggers">
 			<list>
 				<ref local="jobStartTrigger" />
 				<ref local="jobStartByDayTrigger" />
+				<ref local="jobStartByMinTrigger" />
 			</list>
 		</property>
 	</bean>

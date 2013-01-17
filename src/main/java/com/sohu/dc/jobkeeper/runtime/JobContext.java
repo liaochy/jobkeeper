@@ -29,6 +29,12 @@ public class JobContext {
 
 	private List<Node> otherNodes = new ArrayList<Node>();
 
+	private List<Node> minNodes = new ArrayList<Node>();
+
+	public List<Node> getMinNodes() {
+		return minNodes;
+	}
+
 	/**
 	 * 带有指定依赖的按小时的节点和指定小时按天的节点
 	 * 
@@ -114,7 +120,9 @@ public class JobContext {
 			String nodeStr = zooKeeper.getData(zkhome + "/"
 					+ JConstants.NODE_JOB + "/" + nodeName, null);
 			Node node = parse(nodeStr, scripts_home);
-			if (node.getDependency().size() == 0) {
+			if ("minute".equals(node.getType())) {
+				// do nothing
+			} else if (node.getDependency().size() == 0) {
 				etlNodes.add(node);
 			} else {
 				otherNodes.add(node);
@@ -122,6 +130,33 @@ public class JobContext {
 		}
 		log.info("etlNodes are : " + StringUtils.join(etlNodes, ","));
 		log.info("otherNodes are : " + StringUtils.join(otherNodes, ","));
+	}
+
+	/**
+	 * 找出当前时间按分钟统计 需要运行的节点
+	 * 
+	 * @return
+	 */
+	public void createContextMin(String min) {
+		minNodes.clear();
+		List<String> nodeNames = zooKeeper.getNode(zkhome + "/"
+				+ JConstants.NODE_JOB, null);
+
+		String scripts_home = zooKeeper.getData(zkhome + "/"
+				+ JConstants.NODE_HOME, null);
+		for (String nodeName : nodeNames) {
+			String nodeStr = zooKeeper.getData(zkhome + "/"
+					+ JConstants.NODE_JOB + "/" + nodeName, null);
+			Node node = parse(nodeStr, scripts_home);
+			if ("minute".equals(node.getType())) {
+				int canRun = Integer.parseInt(min)
+						% Integer.parseInt(node.getMinute());
+				if (canRun == 0) {
+					minNodes.add(node);
+				}
+			}
+		}
+		log.info("minNodes are : " + StringUtils.join(minNodes, ","));
 	}
 
 	private static Node parse(String nodeStr, String scripts_home) {
@@ -138,6 +173,9 @@ public class JobContext {
 			node.setOwner(jsonObject.getString("owner"));
 			if (!jsonObject.isNull("hour")) {
 				node.setHour(jsonObject.getString("hour"));
+			}
+			if (!jsonObject.isNull("minute")) {
+				node.setMinute(jsonObject.getString("minute"));
 			}
 			if (!jsonObject.isNull("argument")) {
 				node.setArgument(jsonObject.getString("argument"));
