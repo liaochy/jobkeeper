@@ -20,7 +20,7 @@
 	</bean>
 	<bean id="jobStartTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
 		<property name="jobDetail" ref="jobStartDetail" />
-		<property name="cronExpression" value="0 0 * * * ?" />
+		<property name="cronExpression" value="0 1 * * * ?" />
 	</bean>
 	
 	<bean id="jobStartByMinDetail"
