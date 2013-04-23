@@ -44,11 +44,10 @@ public class SendMsg {
 		for (String url : SendMsg.urlArr) {
 			try {
 				sendGet(url, map);
-				System.out.println("ok\n");
+				logger.error("request " + url + " succes! ");
 				break;
 			} catch (Exception e) {
 				logger.error("request " + url + " error! \n" + e);
-				System.out.println("request " + url + " error! \n" + e);
 			}
 		}
 	}
@@ -141,7 +140,6 @@ public class SendMsg {
 		if (requestParamsMap.size() > 0) {
 			params.deleteCharAt(params.length() - 1);
 		}
-		System.out.println(params);
 
 		// 发送请求
 		HttpURLConnection httpURLConnection = null;
@@ -151,7 +149,7 @@ public class SendMsg {
 			httpURLConnection.connect();
 			httpURLConnection.getInputStream();
 			int responseCode = httpURLConnection.getResponseCode();
-			// System.out.println(responseCode);
+			logger.info(params + " http status : " + responseCode);
 			if (responseCode != 200) {
 				throw new Exception();
 			}
