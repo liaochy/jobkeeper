@@ -19,8 +19,12 @@
  */
 package com.sohu.dc.jobkeeper;
 
+import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.commons.exec.CommandLine;
+import org.apache.commons.exec.DefaultExecutor;
+import org.apache.commons.exec.ExecuteException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.zookeeper.KeeperException;
@@ -69,10 +73,8 @@ class ActiveMasterManager extends ZooKeeperListener {
 		super(watcher);
 		this.master = master;
 		Configuration conf = master.getConfiguration();
-		String baseZNode = conf.get(Constants.ZOOKEEPER_ZNODE_PARENT,
-				Constants.DEFAULT_ZOOKEEPER_ZNODE_PARENT);
-		this.masterAddressZNode = ZKUtil.joinZNode(baseZNode,
-				conf.get("zookeeper.znode.master", "master"));
+		String baseZNode = conf.get(Constants.ZOOKEEPER_ZNODE_PARENT, Constants.DEFAULT_ZOOKEEPER_ZNODE_PARENT);
+		this.masterAddressZNode = ZKUtil.joinZNode(baseZNode, conf.get("zookeeper.znode.master", "master"));
 		this.backupMasterAddressZnode = ZKUtil.joinZNode(baseZNode,
 				conf.get("zookeeper.znode.backupmaster", "backup-masters"));
 	}
@@ -147,19 +149,18 @@ class ActiveMasterManager extends ZooKeeperListener {
 		// Try to become the active master, watch if there is another master.
 		// Write out our ServerName as versioned bytes.
 		try {
-			String backupZNode = ZKUtil.joinZNode(backupMasterAddressZnode,
-					master.getServerName());
-			if (ZKUtil.createEphemeralNodeAndWatch(this.watcher,
-					this.masterAddressZNode, master.getServerName().getBytes())) {
+			String backupZNode = ZKUtil.joinZNode(backupMasterAddressZnode, master.getServerName());
+			if (ZKUtil.createEphemeralNodeAndWatch(this.watcher, this.masterAddressZNode, master.getServerName()
+					.getBytes())) {
 				// If we were a backup master before, delete our ZNode from the
 				// backup
 				// master directory since we are the active now
-				LOG.info("Deleting ZNode for " + backupZNode
-						+ " from backup master directory");
+				LOG.info("Deleting ZNode for " + backupZNode + " from backup master directory");
 				ZKUtil.deleteNodeFailSilent(this.watcher, backupZNode);
 
-				// We are the master, return
+				// We are the master, exec startPrepare.sh, return
 				this.clusterHasActiveMaster.set(true);
+				this.startPrepare();
 				LOG.info("Master=" + master.getServerName());
 				return cleanSetOfActiveMaster;
 			}
@@ -178,28 +179,23 @@ class ActiveMasterManager extends ZooKeeperListener {
 			 * delete this node explicitly. If we crash before then, ZooKeeper
 			 * will delete this node for us since it is ephemeral.
 			 */
-			LOG.info("Adding ZNode for " + backupZNode
-					+ " in backup master directory");
-			ZKUtil.createEphemeralNodeAndWatch(this.watcher, backupZNode,
-					master.getServerName().getBytes());
+			LOG.info("Adding ZNode for " + backupZNode + " in backup master directory");
+			ZKUtil.createEphemeralNodeAndWatch(this.watcher, backupZNode, master.getServerName().getBytes());
 
 			String msg;
-			byte[] bytes = ZKUtil.getDataAndWatch(this.watcher,
-					this.masterAddressZNode);
+			byte[] bytes = ZKUtil.getDataAndWatch(this.watcher, this.masterAddressZNode);
 			if (bytes == null) {
 				msg = ("A master was detected, but went down before its address "
 						+ "could be read.  Attempting to become the next active master");
 			} else {
 				String currentMaster = new String(bytes);
 				if (currentMaster.equals(this.master.getServerName())) {
-					msg = ("Current master has this master's address, "
-							+ currentMaster
+					msg = ("Current master has this master's address, " + currentMaster
 							+ "; master was restarted?  Waiting on znode " + "to expire...");
 					// Hurry along the expiration of the znode.
 					ZKUtil.deleteNode(this.watcher, this.masterAddressZNode);
 				} else {
-					msg = "Another master is the active master, "
-							+ currentMaster
+					msg = "Another master is the active master, " + currentMaster
 							+ "; waiting to become the next active master";
 				}
 			}
@@ -209,8 +205,7 @@ class ActiveMasterManager extends ZooKeeperListener {
 			return false;
 		}
 		synchronized (this.clusterHasActiveMaster) {
-			while (this.clusterHasActiveMaster.get()
-					&& !this.master.isStopped()) {
+			while (this.clusterHasActiveMaster.get() && !this.master.isStopped()) {
 				try {
 					this.clusterHasActiveMaster.wait();
 				} catch (InterruptedException e) {
@@ -229,6 +224,20 @@ class ActiveMasterManager extends ZooKeeperListener {
 		return cleanSetOfActiveMaster;
 	}
 
+	private void startPrepare() {
+		String shellPath = ActiveMasterManager.class.getClassLoader().getResource("").getPath().replace("classes/", "");
+		DefaultExecutor executor = new DefaultExecutor();
+		CommandLine cmd = new CommandLine(shellPath + "prepare.sh");
+		try {
+			executor.execute(cmd);
+		} catch (ExecuteException e) {
+			LOG.debug("prepare.sh exec faild \n"+e);
+		} catch (IOException e) {
+			LOG.debug("prepare.sh exec faild \n"+e);
+		}
+
+	}
+
 	/**
 	 * @return True if cluster has an active master.
 	 */
@@ -238,8 +247,7 @@ class ActiveMasterManager extends ZooKeeperListener {
 				return true;
 			}
 		} catch (KeeperException ke) {
-			LOG.info("Received an unexpected KeeperException when checking "
-					+ "isActiveMaster : " + ke);
+			LOG.info("Received an unexpected KeeperException when checking " + "isActiveMaster : " + ke);
 		}
 		return false;
 	}
@@ -248,13 +256,11 @@ class ActiveMasterManager extends ZooKeeperListener {
 		try {
 			// If our address is in ZK, delete it on our way out
 			byte[] bytes = ZKUtil.getDataAndWatch(watcher, masterAddressZNode);
-			if (bytes != null
-					&& new String(bytes).equals(master.getServerName())) {
+			if (bytes != null && new String(bytes).equals(master.getServerName())) {
 				ZKUtil.deleteNode(watcher, masterAddressZNode);
 			}
 		} catch (KeeperException e) {
-			LOG.error(this.watcher
-					.prefix("Error deleting our own master address node"), e);
+			LOG.error(this.watcher.prefix("Error deleting our own master address node"), e);
 		}
 	}
 }

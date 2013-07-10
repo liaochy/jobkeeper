@@ -25,6 +25,7 @@
 				<include>${basedir}/stop.sh</include>
 				<include>${basedir}/jobkeeper.sh</include>
 				<include>${basedir}/env.sh</include>
+				<include>${basedir}/prepare.sh</include>
 			</includes>
 			<fileMode>755</fileMode>
 		</fileSet>

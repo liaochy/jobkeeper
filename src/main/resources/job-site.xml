@@ -5,6 +5,6 @@
 	</property>
 	<property>
 		<name>zookeeper.znode.parent</name>
-		<value>/jobkeeper/sohuwl_81_91</value>
+		<value>/jobkeeper/sohuwl_190</value>
 	</property>
 </configuration>
