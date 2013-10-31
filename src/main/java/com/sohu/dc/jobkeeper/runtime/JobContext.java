@@ -108,6 +108,29 @@ public class JobContext {
 		this.zooKeeper = zooKeeper;
 	}
 
+	public List<Node> getAllNodes() {
+
+		List<Node> list = new ArrayList<Node>();
+		List<String> nodeNames = zooKeeper.getNode(zkhome + "/"
+				+ JConstants.NODE_JOB, null);
+
+		String scripts_home = zooKeeper.getData(zkhome + "/"
+				+ JConstants.NODE_HOME, null);
+		for (String nodeName : nodeNames) {
+			String nodeStr = zooKeeper.getData(zkhome + "/"
+					+ JConstants.NODE_JOB + "/" + nodeName, null);
+			Node node = parse(nodeStr, scripts_home);
+			if ("minute".equals(node.getType())) {
+				// do nothing
+			} else if (node.getDependency().size() == 0) {
+				list.add(node);
+			} else {
+				list.add(node);
+			}
+		}
+		return list;
+	}
+
 	public void createContext() {
 		etlNodes.clear();
 		otherNodes.clear();

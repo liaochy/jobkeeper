@@ -31,16 +31,18 @@ public class JobKeeperTool {
 	 * @throws IOException
 	 */
 	public static void main(String[] args) throws IOException {
-		logger.info("args : " + StringUtils.join(args));
+		logger.info("args : " + StringUtils.join(args, ","));
 		Configuration conf = new Configuration();
 		if (args.length == 2) {
 			JobKeeperTool jobKeeper = new JobKeeperTool(
 					conf.get(Constants.ZOOKEEPER_ZNODE_PARENT));
 			jobKeeper.addNode(args[0], args[1], true);
-		} else if (args.length == 3) {
+		} else if (args.length >= 3) {
 			JobKeeperTool jobKeeper = new JobKeeperTool(
 					conf.get(Constants.ZOOKEEPER_ZNODE_PARENT));
-			jobKeeper.opConfNode(args[0], args[1], args[2]);
+			String[] others = new String[args.length - 2];
+			System.arraycopy(args, 2, others, 0, others.length);
+			jobKeeper.opConfNode(args[0], args[1], others);
 		} else {
 			System.exit(0);
 		}
@@ -71,7 +73,8 @@ public class JobKeeperTool {
 
 	}
 
-	public void opConfNode(String type, String nodeName, String json) {
+	public void opConfNode(String type, String nodeName, String... jsons) {
+		String json = StringUtils.join(jsons, " ");
 		if ("add".equals(type)) {
 			addConfNode(nodeName, json);
 		} else if ("del".equals(type)) {
@@ -137,7 +140,8 @@ public class JobKeeperTool {
 			SendMsg s = new SendMsg();
 			s.sendMsg(mobile, content);
 		}
-		if (!"true".equals(nodeName)) {
+		// true保持连接
+		if (!"true".equals(nodeName) && !"zookeeper".equals(nodeName)) {
 			zooKeeper.closeConnection();
 		}
 	}

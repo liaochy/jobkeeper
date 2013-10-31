@@ -26,5 +26,5 @@ if [[ -z $3 ]]
    then
    java  ${JAVA_ARGS} -classpath $CLASSPATH ${MAIN_CLASS} $1 $2 >>/dev/null 2>&1 < /dev/null  &
    else
-   java  ${JAVA_ARGS} -classpath $CLASSPATH ${MAIN_CLASS} $1 $2 $3 >>/dev/null 2>&1 < /dev/null  &
+   java  ${JAVA_ARGS} -classpath $CLASSPATH ${MAIN_CLASS} $@ >>/dev/null 2>&1 < /dev/null  &
 fi

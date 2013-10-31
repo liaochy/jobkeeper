@@ -5,6 +5,11 @@ import java.util.List;
 
 public class Node {
 	@Override
+	public String toString() {
+		return "Node [type=" + type + ", name=" + name + ", hour=" + hour + "]";
+	}
+
+	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
